@@ -1,0 +1,1686 @@
+version: 1
+
+settings:
+  default_action: warn
+
+rules:
+  - id: rails-views/views-contain-presentation-logic-only
+    description: >
+      Rails views should focus on presentation and simple presentation
+      decisions. Flag templates that implement substantial business rules,
+      authorization policy, persistence decisions, workflow state
+      transitions, or complex data transformations. Move domain decisions
+      to an appropriate domain layer and reusable presentation logic to
+      helpers, presenters, components, or equivalent abstractions.
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+    context:
+      include:
+        - 'app/models/**/*'
+        - 'app/helpers/**/*'
+        - 'app/presenters/**/*'
+        - 'app/components/**/*'
+
+  - id: rails-views/views-do-not-query-database
+    description: >
+      Templates and presentation components should not initiate database
+      queries or discover additional domain data while rendering. Data
+      required for the response should normally be prepared before
+      rendering. Association access is acceptable when the required data
+      was intentionally loaded and does not create hidden query behavior.
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+    context:
+      include:
+        - 'app/controllers/**/*'
+        - 'app/models/**/*'
+
+  - id: rails-views/avoid-n-plus-one-rendering
+    description: >
+      Rendering a collection should not trigger additional database work
+      for each item because associations or computed values were not
+      loaded in advance. Flag view changes that traverse associations in
+      repeated rendering when the controller or query does not appear to
+      preload the required data. Do not flag intentionally tiny bounded
+      collections where the extra queries are known to be insignificant.
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/controllers/**/*'
+        - 'app/models/**/*'
+
+  - id: rails-views/partials-have-cohesive-purpose
+    description: >
+      Extract partials or components around coherent reusable UI concepts
+      rather than arbitrary chunks of markup. Flag very large templates
+      containing clearly independent repeated concepts, and flag excessive
+      fragmentation where understanding one UI element requires jumping
+      through many tiny partials with no meaningful abstraction.
+    severity: info
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+
+  - id: rails-views/partial-dependencies-are-explicit
+    description: >
+      Reusable partials and components should make their important data
+      dependencies explicit through locals, component arguments, or
+      another clear interface rather than implicitly depending on
+      unrelated controller instance variables or ambient state.
+      Layout-level and intentionally application-global context are
+      reasonable exceptions.
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+
+  - id: rails-views/avoid-duplicated-presentation-rules
+    description: >
+      Repeated non-trivial formatting, labeling, status mapping,
+      link-building, or presentation decisions should have one reusable
+      presentation abstraction when they represent the same concept. Do
+      not extract trivial markup merely to remove a few repeated lines;
+      flag duplication when it creates a realistic risk of inconsistent UI
+      behavior.
+    severity: info
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/helpers/**/*'
+        - 'app/components/**/*'
+    granularity: pull_request
+
+  - id: rails-views/views-use-semantic-route-helpers
+    description: >
+      Links and forms should express navigation through Rails routing and
+      domain resources rather than manually reconstructing application
+      URLs or coupling the view to routing implementation details.
+      Explicit external URLs and genuinely dynamic URLs are not
+      violations.
+    severity: info
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+
+  - id: rails-views/view-conditionals-reflect-presentation-state
+    description: >
+      Conditional rendering should be based on already-established
+      presentation or domain state rather than reconstructing complex
+      business or permission rules in the template. Flag conditionals that
+      duplicate eligibility, authorization, workflow, or domain
+      calculations found elsewhere.
+    scope:
+      include:
+        - 'app/views/**/*'
+        - 'app/components/**/*'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/models/**/*'
+        - 'app/policies/**/*'
+        - 'app/controllers/**/*'
+
+  - id: rails-controllers/controllers-orchestrate-dont-own-domain-logic
+    description: >
+      Rails controllers should translate the HTTP request into application
+      operations, coordinate dependencies, and choose a response. Flag
+      substantial business calculations, state machines, multi-step domain
+      workflows, or reusable domain decisions implemented directly in
+      controller actions. Small request-specific orchestration does not
+      require extraction merely to make an action shorter.
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+    context:
+      include:
+        - 'app/models/**/*.rb'
+        - 'app/services/**/*.rb'
+        - 'app/commands/**/*.rb'
+        - 'app/use_cases/**/*.rb'
+
+  - id: rails-controllers/authorize-before-sensitive-effects
+    description: >
+      Authorization for a protected operation should occur before
+      sensitive data is exposed or state-changing side effects are
+      performed. Flag actions where authorization is absent, occurs after
+      writes or external effects, or checks a related object that does not
+      actually govern the requested resource. Public endpoints and
+      deliberately authorization-free operations are exempt.
+    severity: error
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/policies/**/*.rb'
+        - config/routes.rb
+        - 'app/models/**/*.rb'
+
+  - id: rails-controllers/mass-assignment-follows-user-intent
+    description: >
+      Strong-parameter allowlists should include only attributes that the
+      current actor and endpoint are intentionally allowed to modify. Flag
+      sensitive ownership, role, privilege, billing, state-machine, or
+      internal control fields exposed to mass assignment merely because
+      the model has those attributes. Administrative endpoints may
+      intentionally permit a broader set.
+    severity: error
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/models/**/*.rb'
+        - 'app/policies/**/*.rb'
+
+  - id: rails-controllers/callbacks-are-request-wide-concerns
+    description: >
+      Controller callbacks should represent clear cross-action request
+      concerns such as authentication or loading a shared resource, not
+      hide substantial action-specific workflow or create
+      ordering-dependent behavior. Flag callback chains that make it
+      difficult to understand which side effects, authorization decisions,
+      or state changes occur for an action.
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+
+  - id: rails-controllers/actions-have-consistent-response-contract
+    description: >
+      Success and failure paths within an action should produce deliberate
+      and consistent HTTP semantics. Flag branches that accidentally
+      render success after a failed operation, return incompatible
+      response shapes, use misleading status codes, or depend on implicit
+      rendering when control flow makes the intended response unclear.
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+
+  - id: rails-controllers/avoid-controller-wide-exception-masking
+    description: >
+      Do not rescue broad exception classes in controllers and convert
+      unexpected failures into normal not-found, validation, empty, or
+      success responses. Rescue only failures whose semantics are
+      understood at the HTTP boundary, and preserve observability for
+      unexpected exceptions.
+    severity: error
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+
+  - id: rails-controllers/collection-actions-are-bounded
+    description: >
+      Controller actions returning potentially large collections should
+      impose an intentional bound through pagination, limits, streaming,
+      exports, or another appropriate mechanism. Flag actions that load or
+      serialize an unbounded relation whose size can grow with user or
+      production data.
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/models/**/*.rb'
+        - 'app/serializers/**/*.rb'
+
+  - id: rails-controllers/multi-write-workflows-have-atomicity-plan
+    description: >
+      A controller-triggered operation that performs multiple dependent
+      database writes should have deliberate atomicity semantics. Use a
+      transaction or a domain operation that provides equivalent
+      guarantees when partial success would violate invariants. Do not
+      require a transaction when writes are intentionally independent or
+      external side effects require a different consistency strategy.
+    scope:
+      include:
+        - 'app/controllers/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/models/**/*.rb'
+        - 'app/services/**/*.rb'
+        - 'app/commands/**/*.rb'
+
+  - id: rails-models/models-protect-domain-invariants
+    description: >
+      Important invariants of a Rails domain model should be enforced at a
+      boundary that applies consistently to every write path, rather than
+      only in one controller, form, or caller. Flag domain rules that can
+      easily be bypassed by another code path. Use database constraints as
+      an additional safeguard for invariants requiring concurrency-safe
+      integrity.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/controllers/**/*.rb'
+        - 'app/forms/**/*.rb'
+        - 'db/**/*'
+
+  - id: rails-models/callbacks-avoid-external-side-effects
+    description: >
+      Active Record callbacks should not unexpectedly perform substantial
+      external side effects such as network requests, email delivery, job
+      orchestration, or updates to unrelated aggregates merely because a
+      record was saved. Prefer explicit application workflows, especially
+      when callers need to reason about retries and transaction
+      boundaries. Small model-internal normalization or bookkeeping may be
+      appropriate.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+
+  - id: rails-models/callbacks-do-not-hide-domain-workflows
+    description: >
+      Do not encode multi-step domain workflows as chains of lifecycle
+      callbacks whose execution depends on save, destroy, or validation
+      ordering. Flag callback interactions where understanding a state
+      transition requires tracing several implicit hooks. Prefer an
+      explicit operation when the workflow has meaningful branching,
+      failure behavior, or side effects.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+
+  - id: rails-models/validations-match-domain-not-form-shape
+    description: >
+      Model validations should represent invariants that are generally
+      true for the persisted entity, not requirements that exist only on
+      one form, workflow step, UI, or API endpoint. Context-specific input
+      requirements should live at the appropriate boundary unless they
+      genuinely define a valid model state.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/forms/**/*.rb'
+        - 'app/controllers/**/*.rb'
+
+  - id: rails-models/association-lifecycle-is-intentional
+    description: >
+      Association ownership and deletion behavior should reflect the
+      domain. Flag dependent deletion, nullification, cascading, or
+      orphaning behavior that could unexpectedly destroy valuable records,
+      leave invalid records, or contradict the apparent ownership
+      relationship. Shared entities should not be treated as owned
+      children merely for cleanup convenience.
+    severity: error
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+        - 'db/migrate/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - db/schema.rb
+
+  - id: rails-models/scopes-express-query-semantics
+    description: >
+      Scopes and query methods should represent stable, composable domain
+      query concepts. Flag scopes that unexpectedly mutate data, depend on
+      request state, perform unrelated side effects, return materially
+      different kinds of values, or encode presentation-specific behavior
+      under a domain-like name.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+
+  - id: rails-models/avoid-default-scope-for-contextual-policy
+    description: >
+      Do not hide contextual filtering such as tenant visibility, user
+      permissions, workflow state, or soft business exclusions inside a
+      default_scope when callers sometimes need the omitted records.
+      Prefer explicit query boundaries that make the policy visible. A
+      truly universal invariant with carefully understood unscoped
+      behavior may justify a default scope.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+
+  - id: rails-models/computed-properties-avoid-hidden-queries
+    description: >
+      Model methods that appear to compute or expose a property should not
+      unexpectedly issue expensive or repeated database queries,
+      especially when likely to be called for every record in a
+      collection. Flag methods whose innocent-looking use creates an N+1
+      pattern or substantial hidden database work.
+    scope:
+      include:
+        - 'app/models/**/*.rb'
+    granularity: pull_request
+    context:
+      include:
+        - 'app/views/**/*'
+        - 'app/serializers/**/*'
+        - 'app/controllers/**/*'
+
+  - id: rails-models/model-concerns-represent-cohesive-capabilities
+    description: >
+      Model concerns should represent a coherent capability or domain
+      concept, not serve as miscellaneous storage for methods extracted
+      only to make a model file shorter. Flag concerns with unrelated
+      responsibilities, hidden dependencies on host-class internals, or
+      names that describe mechanics rather than a meaningful capability.
+    severity: info
+    scope:
+      include:
+        - 'app/models/concerns/**/*.rb'
+        - 'app/models/**/*.rb'
+    granularity: pull_request
+
+  - id: database-schemas-and-migrations/use-expand-contract-for-breaking-changes
+    description: >
+      Changes to columns, tables, constraints, or data representations
+      that existing application versions may still depend on should use a
+      staged expand-and-contract rollout when deployments can overlap. Add
+      the new representation first, make application code compatible with
+      both states, migrate data, and remove the old representation only
+      after it is no longer used. Atomic deployments with guaranteed
+      exclusivity may be exempt.
+    severity: error
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**'
+        - '**/app/**'
+        - '**/src/**'
+
+  - id: database-schemas-and-migrations/avoid-long-locking-migrations
+    description: >
+      Production migrations should avoid operations likely to hold
+      disruptive locks or rewrite large hot tables for an unsafe duration.
+      Evaluate the database engine, table size, traffic pattern, operation
+      type, and available online or concurrent alternatives. Flag
+      apparently simple DDL when its operational impact could block reads
+      or writes on a significant table.
+    severity: error
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+    granularity: pull_request
+
+  - id: database-schemas-and-migrations/backfills-are-bounded-and-restartable
+    description: >
+      Large data backfills should operate in bounded batches, avoid
+      holding one transaction for the entire dataset, and be safe to
+      resume or rerun after interruption. Flag migrations that eagerly
+      update an entire potentially large table, load all affected rows
+      into memory, or depend on completing exactly once without failure.
+      Tiny known-bounded tables may be exempt.
+    severity: error
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+
+  - id: database-schemas-and-migrations/stage-expensive-constraint-validation
+    description: >
+      When the database supports staged validation, adding constraints to
+      large existing tables should avoid combining constraint creation
+      with an expensive full-table validation that unnecessarily blocks
+      concurrent traffic. Prefer adding the constraint in a low-impact
+      form and validating it separately when that materially reduces
+      operational risk.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+
+  - id: database-schemas-and-migrations/indexes-match-real-query-patterns
+    description: >
+      New indexes should correspond to concrete query, join, uniqueness,
+      ordering, or lookup requirements rather than being added reflexively
+      for individual columns. Evaluate column order, selectivity, existing
+      indexes, expected query predicates, and write overhead. Flag
+      redundant indexes and indexes unlikely to support the query pattern
+      that motivated them.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+        - '**/schema.rb'
+        - '**/structure.sql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**'
+        - '**/repositories/**'
+        - '**/queries/**'
+        - '**/app/**'
+        - '**/src/**'
+
+  - id: database-schemas-and-migrations/database-enforces-critical-integrity
+    description: >
+      Critical relational and uniqueness invariants should be enforced by
+      the database when feasible rather than relying solely on application
+      validation. Flag important foreign-key, uniqueness, or check
+      invariants that can be violated by concurrent writes, alternate
+      applications, scripts, or operational tooling. Application
+      validation may complement database constraints for better user
+      feedback.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+        - '**/schema.rb'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**'
+        - '**/app/**'
+        - '**/src/**'
+
+  - id: database-schemas-and-migrations/nullability-matches-domain-invariants
+    description: >
+      Database nullability should reflect whether absence is a legitimate
+      state in the domain. Flag nullable columns that application behavior
+      treats as mandatory and non-null columns that require artificial
+      sentinel values to represent meaningful absence. Consider staged
+      rollout requirements before tightening nullability on existing data.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+        - '**/schema.rb'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**'
+
+  - id: database-schemas-and-migrations/destructive-migrations-require-safe-transition
+    description: >
+      Dropping columns, tables, indexes, enum values, or other persisted
+      structures should occur only after application code and operational
+      consumers no longer depend on them. Flag destructive migrations in
+      the same rollout that removes the last application reference when
+      older application instances, background jobs, analytics, or rollback
+      may still require the structure.
+    severity: error
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*'
+
+  - id: database-schemas-and-migrations/migrations-do-not-depend-on-current-model-code
+    description: >
+      Historical data migrations should not depend on mutable application
+      model behavior whose validations, callbacks, scopes, associations,
+      or method semantics may change later. Prefer migration-local
+      representations or stable low-level operations when future execution
+      of the migration must remain reliable. Framework-supported
+      historical model mechanisms are acceptable.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+
+  - id: database-schemas-and-migrations/data-transformations-preserve-meaning
+    description: >
+      Data migrations that translate, merge, split, normalize, or
+      reinterpret existing values should preserve the intended domain
+      meaning for all known states, including legacy and malformed states.
+      Flag transformations that silently collapse distinguishable states,
+      invent defaults, or discard information without an explicit product
+      or domain decision.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**'
+        - '**/app/**'
+        - '**/src/**'
+
+  - id: database-schemas-and-migrations/migration-failure-has-recovery-path
+    description: >
+      A migration with significant data mutation or operational risk
+      should have a credible recovery strategy. This need not always be a
+      literal automatic down migration: forward repair, restartable
+      execution, restored data, or an explicitly irreversible operation
+      may be safer. Flag changes where a partial failure could leave an
+      ambiguous or unrecoverable state.
+    scope:
+      include:
+        - '**/migrate/**'
+        - '**/migrations/**'
+        - '**/*.sql'
+    granularity: pull_request
+
+  - id: python-views/python-views-keep-domain-logic-out
+    description: >
+      Presentation templates, presenters, and view-specific rendering code
+      should focus on representation rather than implement business rules,
+      authorization decisions, persistence workflows, or complex domain
+      calculations. Simple display conditionals and formatting are
+      appropriate; reusable domain decisions should be established before
+      rendering.
+    scope:
+      include:
+        - '**/templates/**/*.html'
+        - '**/templates/**/*.jinja'
+        - '**/templates/**/*.jinja2'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+
+  - id: python-views/templates-do-not-query-storage
+    description: >
+      Templates and presentation helpers should not initiate database
+      queries or repository calls while rendering. Required data should be
+      loaded by the request or application layer in advance. Lazy
+      relationship access should be treated as a violation when it causes
+      hidden database work during rendering.
+    scope:
+      include:
+        - '**/templates/**/*'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/views/**/*.py'
+        - '**/controllers/**/*.py'
+        - '**/models/**/*.py'
+
+  - id: python-views/templates-do-not-rebuild-authorization
+    description: >
+      Templates may use an already-computed permission or capability to
+      decide whether to display an action, but should not independently
+      reconstruct complex authorization policy. Flag permission logic in
+      templates that can diverge from the server-side enforcement
+      protecting the underlying operation.
+    scope:
+      include:
+        - '**/templates/**/*'
+    granularity: pull_request
+    context:
+      include:
+        - '**/permissions/**/*.py'
+        - '**/policies/**/*.py'
+        - '**/views/**/*.py'
+        - '**/controllers/**/*.py'
+
+  - id: python-views/presentation-context-is-purpose-built
+    description: >
+      Pass templates and presentation components the data they need rather
+      than broad mutable objects, service containers, request internals,
+      or large context bags that invite hidden dependencies. Domain
+      objects themselves are reasonable inputs when their
+      presentation-facing contract is clear.
+    severity: info
+    scope:
+      include:
+        - '**/templates/**/*'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+
+  - id: python-views/escape-untrusted-presentation-content
+    description: >
+      User-controlled or externally controlled content rendered into HTML
+      should remain escaped unless it has passed through an intentional
+      sanitization or trusted-content boundary appropriate for the
+      context. Flag uses of safe, raw, markup, or equivalent escape
+      bypasses when trust in the content is not evident.
+    severity: error
+    scope:
+      include:
+        - '**/templates/**/*'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+    granularity: pull_request
+
+  - id: python-views/repeated-ui-concepts-use-shared-presentation
+    description: >
+      Repeated non-trivial presentation concepts such as status badges,
+      monetary formatting, domain labels, action menus, or error summaries
+      should use a shared component, macro, helper, or presenter when
+      divergence would be harmful. Do not extract trivial markup merely to
+      eliminate small textual duplication.
+    severity: info
+    scope:
+      include:
+        - '**/templates/**/*'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+    granularity: pull_request
+
+  - id: python-views/rendering-loops-avoid-per-item-expensive-work
+    description: >
+      Rendering loops should not perform network calls, database lookups,
+      expensive parsing, or other substantial work separately for each
+      item. Flag helpers or properties invoked from repeated rendering
+      when their implementation hides such work. Prepare or batch the data
+      before rendering instead.
+    scope:
+      include:
+        - '**/templates/**/*'
+        - '**/presenters/**/*.py'
+        - '**/presentation/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*.py'
+
+  - id: python-controllers/python-controllers-orchestrate
+    description: >
+      HTTP handlers, route functions, API endpoints, and controllers
+      should translate requests into application operations and responses
+      rather than own substantial reusable business logic. Flag domain
+      calculations, multi-step workflows, or state-transition rules
+      implemented directly in endpoints when they belong in an application
+      or domain abstraction.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/controllers.py'
+        - '**/routes/**/*.py'
+        - '**/routes.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    context:
+      include:
+        - '**/models/**/*.py'
+        - '**/services/**/*.py'
+        - '**/domain/**/*.py'
+        - '**/use_cases/**/*.py'
+
+  - id: python-controllers/validate-untrusted-input-at-boundary
+    description: >
+      Request data crossing into application or domain logic should be
+      parsed and validated according to the operation's actual contract.
+      Flag handlers that pass loosely structured request dictionaries deep
+      into the system or assume client-supplied types, identifiers,
+      states, or relationships are valid without an appropriate validation
+      boundary.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/controllers.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+
+  - id: python-controllers/authorize-resource-not-just-route
+    description: >
+      Protected operations should authorize the actor against the actual
+      resource and action being performed, not merely verify
+      authentication, possession of an identifier, or access to a broad
+      route group. Flag object-level operations where resource ownership,
+      tenant membership, or policy checks are missing or occur after
+      sensitive effects.
+    severity: error
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/controllers.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/permissions/**/*.py'
+        - '**/policies/**/*.py'
+        - '**/models/**/*.py'
+
+  - id: python-controllers/do-not-trust-client-owned-fields
+    description: >
+      Controllers should derive security-sensitive ownership, tenant,
+      actor, privilege, workflow-state, and server-controlled fields from
+      trusted server context rather than accepting them as authoritative
+      client input. Client-provided values may be used as lookup requests
+      but must not themselves establish authorization or ownership.
+    severity: error
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/controllers.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    granularity: pull_request
+
+  - id: python-controllers/multi-write-request-has-atomicity-plan
+    description: >
+      A request that performs multiple dependent database writes should
+      have deliberate transaction semantics when partial completion would
+      violate invariants. Do not blindly wrap external network effects in
+      a database transaction; use an appropriate consistency strategy such
+      as an outbox, idempotent retry, compensation, or explicit workflow
+      where needed.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**/*.py'
+        - '**/services/**/*.py'
+
+  - id: python-controllers/map-errors-without-masking-failures
+    description: >
+      Convert expected application failures into deliberate HTTP
+      responses, but do not catch broad exceptions and turn unexpected
+      programming, infrastructure, or integrity failures into ordinary
+      validation, not-found, empty, or successful responses. Unexpected
+      failures should remain observable and distinguishable.
+    severity: error
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+
+  - id: python-controllers/retryable-writes-are-idempotent
+    description: >
+      Write endpoints likely to be retried by clients, queues, proxies,
+      payment systems, or distributed workflows should have intentional
+      duplicate request semantics. Flag operations where replay can
+      accidentally create duplicate resources, charges, notifications, or
+      irreversible effects and no idempotency or deduplication strategy is
+      apparent.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/controllers/**/*.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    granularity: pull_request
+
+  - id: python-controllers/collection-endpoints-are-bounded
+    description: >
+      Endpoints exposing collections whose size grows with production data
+      should use pagination, limits, streaming, exports, or another
+      explicit bound. Flag apparently unbounded ORM queries or
+      serialization of entire growing datasets. Small intrinsically
+      bounded reference collections are exempt.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+    granularity: pull_request
+
+  - id: python-controllers/async-handlers-avoid-blocking-work
+    description: >
+      Async request handlers should not directly perform blocking network,
+      filesystem, database, subprocess, or CPU-heavy work that stalls the
+      event loop. Flag blocking operations inside async handlers when the
+      dependency is not async-aware or explicitly delegated to an
+      appropriate executor or worker.
+    scope:
+      include:
+        - '**/views/**/*.py'
+        - '**/views.py'
+        - '**/controllers/**/*.py'
+        - '**/routes/**/*.py'
+        - '**/api/**/*.py'
+        - '**/endpoints/**/*.py'
+
+  - id: python-models/python-models-protect-invariants
+    description: >
+      Important domain invariants should be enforced at a boundary shared
+      by all relevant write paths rather than duplicated across individual
+      controllers, forms, jobs, or commands. Flag model state that can be
+      made invalid through ordinary alternate write paths. Use database
+      constraints where concurrent writes require database-level
+      enforcement.
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/domain/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/views/**/*.py'
+        - '**/controllers/**/*.py'
+        - '**/forms/**/*.py'
+        - '**/migrations/**/*'
+
+  - id: python-models/models-do-not-depend-on-request-context
+    description: >
+      Domain and persistence models should not depend directly on the
+      current HTTP request, session, global current-user state, headers,
+      cookies, or framework request globals. Pass actor or request-derived
+      information explicitly to the operation that needs it so model
+      behavior remains understandable outside a request.
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/domain/**/*.py'
+
+  - id: python-models/model-properties-avoid-hidden-io
+    description: >
+      Properties and inexpensive-looking model methods should not
+      unexpectedly issue database queries, network calls, filesystem
+      access, or other substantial I/O. This is especially important for
+      methods likely to be accessed during serialization or inside loops.
+      Make expensive operations explicit or provide a query strategy that
+      batches the work.
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/domain/**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/serializers/**/*.py'
+        - '**/views/**/*.py'
+        - '**/templates/**/*'
+
+  - id: python-models/query-helpers-express-domain-concepts
+    description: >
+      Custom managers, querysets, repositories, and model query helpers
+      should expose meaningful domain queries rather than leak repeated
+      low-level filtering recipes to callers. Flag duplicated complex
+      predicates across callers and query helpers whose names obscure
+      important filtering, visibility, or ordering semantics.
+    severity: info
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/repositories/**/*.py'
+        - '**/querysets/**/*.py'
+    granularity: pull_request
+
+  - id: python-models/relationship-delete-behavior-is-intentional
+    description: >
+      Cascade, protect, restrict, set-null, orphan, and application-driven
+      deletion behavior should reflect actual ownership and lifecycle
+      semantics. Flag relationships where deleting one record could
+      unexpectedly destroy shared or valuable data, or where deletion
+      leaves records that violate domain assumptions.
+    severity: error
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/migrations/**/*.py'
+    granularity: pull_request
+
+  - id: python-models/persistence-hooks-avoid-workflow-side-effects
+    description: >
+      Model save hooks, signals, event listeners, and ORM lifecycle
+      callbacks should not hide substantial workflows or external side
+      effects whose execution surprises callers performing ordinary
+      persistence. Prefer explicit application operations when behavior
+      involves network calls, messages, notifications, unrelated
+      aggregates, or meaningful branching.
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/signals/**/*.py'
+        - '**/events/**/*.py'
+    granularity: pull_request
+
+  - id: python-models/money-time-and-identifiers-have-domain-types
+    description: >
+      Persist and manipulate money, timestamps, durations, identifiers,
+      and other semantically important values using representations that
+      preserve their domain meaning. Flag floating-point money, ambiguous
+      naive timestamps in timezone-aware systems, overloaded string fields
+      containing multiple incompatible concepts, or identifiers whose
+      representation invites accidental arithmetic or mutation.
+    scope:
+      include:
+        - '**/models/**/*.py'
+        - '**/models.py'
+        - '**/domain/**/*.py'
+    granularity: pull_request
+
+  - id: python-models/bulk-operations-preserve-required-semantics
+    description: >
+      Bulk create, update, and delete operations should not bypass
+      validations, hooks, derived fields, audit behavior, or domain side
+      effects that the application relies on for correctness. Bulk
+      operations are appropriate when those semantics are unnecessary or
+      are deliberately reproduced by another mechanism.
+    scope:
+      include:
+        - '**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**/*.py'
+        - '**/signals/**/*.py'
+        - '**/events/**/*.py'
+
+  - id: python-models/avoid-n-plus-one-query-shapes
+    description: >
+      Code retrieving collections of models should account for related
+      data that will predictably be accessed for each result. Flag query
+      and consumption patterns that produce one additional relationship
+      query per record when select-related, prefetching, joins, batching,
+      or another bounded strategy is appropriate.
+    scope:
+      include:
+        - '**/*.py'
+    granularity: pull_request
+    context:
+      include:
+        - '**/models/**/*.py'
+        - '**/serializers/**/*.py'
+        - '**/views/**/*.py'
+
+  - id: graphql-schemas/dedicated-mutation-inputs-and-payloads
+    description: >
+      Mutations should normally accept a dedicated input object and return
+      a dedicated payload object rather than exposing a long list of
+      independent arguments or returning a base domain type directly.
+      Dedicated input and payload types create room for compatible
+      evolution, structured errors, metadata, and additional mutation
+      results. Very small internal schemas may deviate when this
+      flexibility has no practical value.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+
+  - id: graphql-schemas/keep-schema-domain-normalized
+    description: >
+      Model domain entities as stable reusable GraphQL types and
+      relationships instead of repeatedly embedding slightly different
+      copies of the same conceptual data into feature-specific result
+      objects. Flag denormalized schema shapes that duplicate entity
+      fields across unrelated locations and are likely to drift.
+      Purpose-built projections are acceptable when they genuinely
+      represent a different domain concept rather than a copied view of
+      the same entity.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+
+  - id: graphql-schemas/paginate-potentially-unbounded-fields
+    description: >
+      Fields representing collections that can grow materially over time
+      should expose bounded pagination rather than an unrestricted list.
+      Prefer a consistent pagination model that supports stable traversal
+      and metadata needed by clients. Small intrinsically bounded
+      collections such as a handful of enum-like options or fixed
+      configuration entries do not require pagination.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+
+  - id: graphql-schemas/nullability-reflects-domain-contract
+    description: >
+      GraphQL nullability should communicate a deliberate API guarantee
+      rather than mirror database nullability or be chosen defensively.
+      Flag fields marked nullable despite having a stable domain
+      guarantee, and non-null fields whose resolver can legitimately fail
+      to produce a value under normal conditions. Consider GraphQL error
+      propagation when judging whether a non-null guarantee is safe.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*resolver*'
+        - '**/*graphql*'
+        - '**/models/**'
+
+  - id: graphql-schemas/avoid-untyped-json-escape-hatches
+    description: >
+      Do not use JSON, Object, Map, Any, or similarly opaque custom
+      scalars for data whose structure is known and is part of the API
+      contract. Prefer explicit object, input, enum, interface, union, or
+      scalar types so clients retain discoverability and type safety.
+      Opaque JSON is appropriate for genuinely schemaless payloads,
+      pass-through external data, or intentionally open-ended metadata.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+
+  - id: graphql-schemas/evolve-schema-without-breaking-clients
+    description: >
+      Schema evolution should preserve existing client contracts whenever
+      practical. Flag removal or incompatible alteration of existing
+      fields, arguments, enum values, input fields, or nullability when a
+      deprecation and migration path could be used instead. A deliberate
+      breaking change is acceptable when the API has an explicit
+      versioning or coordinated migration process.
+    severity: error
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+
+  - id: graphql-schemas/deprecations-provide-migration-path
+    description: >
+      Deprecated schema elements should explain what clients should use
+      instead whenever a replacement exists. Flag vague reasons such as
+      deprecated, obsolete, or no longer supported when they do not help a
+      client migrate. If there is intentionally no replacement, the reason
+      should make that clear.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+
+  - id: graphql-schemas/model-domain-errors-consistently
+    description: >
+      Expected business failures from mutations should follow a consistent
+      schema-level error strategy rather than varying arbitrarily between
+      null payloads, ad hoc strings, unrelated booleans, and
+      transport-level errors. Reserve unexpected execution errors for
+      exceptional failures. The rule should respect an established
+      repository-wide error convention rather than mandate one particular
+      GraphQL error design.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*graphql*'
+        - '**/*resolver*'
+
+  - id: graphql-schemas/schema-names-express-domain-not-storage
+    description: >
+      Public GraphQL names should describe domain concepts rather than
+      leaking database tables, join models, foreign-key terminology, ORM
+      implementation details, or internal service boundaries. Expose
+      storage concepts only when they are themselves meaningful parts of
+      the API domain.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+
+  - id: graphql-schemas/avoid-ui-specific-schema-shapes
+    description: >
+      Avoid designing reusable domain fields around the needs of one
+      screen, component, or current client layout when a stable
+      domain-oriented shape can serve clients more generally. Flag
+      presentation-specific names, duplicated fields, or composite objects
+      whose only purpose is reproducing one UI's arrangement.
+      Purpose-built workflow queries are acceptable when the workflow
+      itself is a stable API concept.
+    severity: info
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+
+  - id: graphql-schemas/entity-identifiers-are-stable
+    description: >
+      Identifiers exposed as the durable identity of GraphQL entities
+      should be stable, opaque to clients, and usable consistently
+      wherever the same entity appears. Flag identifiers derived from
+      mutable presentation data or context-dependent values, and cases
+      where the same conceptual entity is exposed with incompatible
+      identities in different parts of the schema.
+    scope:
+      include:
+        - '**/*.graphql'
+        - '**/*.graphqls'
+        - '**/*.gql'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*resolver*'
+        - '**/models/**'
+
+  - id: npm-yarn-configurations/dependency-category-matches-runtime-role
+    description: >
+      Packages should be declared according to how consumers and
+      production code actually use them. Runtime requirements belong in
+      dependencies, development-only tooling belongs in devDependencies,
+      host/plugin compatibility may belong in peerDependencies, and truly
+      optional functionality may belong in optional dependencies. Flag
+      classifications that work only because of hoisting or the
+      developer's existing install.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+        - '**/yarn.lock'
+        - '**/package-lock.json'
+
+  - id: npm-yarn-configurations/peer-dependencies-reflect-host-compatibility
+    description: >
+      Libraries and plugins should use peer dependencies when they are
+      intended to integrate with a host package supplied by the consumer
+      and multiple installed copies would be incorrect or misleading. Peer
+      ranges should express the versions actually supported rather than
+      being unnecessarily narrow or claiming compatibility that the
+      package does not provide.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+
+  - id: npm-yarn-configurations/overrides-have-explicit-justification
+    description: >
+      npm overrides, Yarn resolutions, package extensions, and similar
+      dependency-tree interventions should address a specific understood
+      compatibility, security, or upstream metadata problem. Flag broad or
+      permanent-looking overrides that merely force installation past a
+      real incompatibility, unexpectedly affect unrelated transitive
+      paths, or lack evidence that the forced version is compatible.
+    scope:
+      include:
+        - '**/package.json'
+        - '**/.yarnrc.yml'
+        - '**/yarn.config.cjs'
+    granularity: pull_request
+    context:
+      include:
+        - '**/yarn.lock'
+        - '**/package-lock.json'
+
+  - id: npm-yarn-configurations/dependency-ranges-match-release-policy
+    description: >
+      Version ranges should reflect the package's compatibility and
+      release strategy rather than being chosen mechanically. Flag ranges
+      that are so broad they accept untested breaking behavior, so narrow
+      they prevent compatible updates without reason, or inconsistent with
+      the repository's stated dependency policy. Exact pins may be
+      appropriate for applications; libraries often need
+      consumer-compatible ranges.
+    severity: info
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+
+  - id: npm-yarn-configurations/lifecycle-scripts-have-necessary-side-effects
+    description: >
+      preinstall, install, postinstall, prepare, prepublish, and related
+      lifecycle scripts execute implicitly in important package-management
+      workflows and should contain only necessary, expected behavior. Flag
+      surprising network access, environment mutation, repository
+      modification, destructive operations, or expensive work when an
+      explicit build or setup command would be safer and clearer.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/scripts/**/*'
+        - '**/*.{js,ts,mjs,cjs,sh}'
+
+  - id: npm-yarn-configurations/scripts-are-portable-or-intentionally-platform-specific
+    description: >
+      Package scripts expected to run for all contributors or CI
+      environments should not accidentally depend on shell syntax,
+      commands, filesystem conventions, or environment behavior available
+      only on one developer platform. Platform-specific scripts are
+      acceptable when the restriction is intentional and evident from the
+      project context.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/scripts/**/*'
+        - '**/.github/workflows/**/*'
+
+  - id: npm-yarn-configurations/workspace-dependencies-respect-package-boundaries
+    description: >
+      In a workspace or monorepo, each package should declare the
+      dependencies required by its own source rather than relying on
+      packages available only because another workspace or the repository
+      root installed them. Flag undeclared cross-workspace dependencies
+      and dependencies placed at the root solely to make accidental
+      hoisting satisfy child packages.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+        - '**/yarn.lock'
+        - '**/package-lock.json'
+
+  - id: npm-yarn-configurations/workspace-dependencies-use-coherent-versions
+    description: >
+      Workspace packages that depend on the same foundational library
+      should normally use compatible version policies unless different
+      versions are intentional. Flag unexplained divergence that produces
+      duplicate runtimes, incompatible shared types, inconsistent tooling,
+      or different behavior between packages. Multiple versions are
+      acceptable when compatibility constraints genuinely require them.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/yarn.lock'
+        - '**/package-lock.json'
+
+  - id: npm-yarn-configurations/package-manager-choice-is-consistent
+    description: >
+      A repository should have one intentional package-manager workflow
+      unless it explicitly supports multiple managers. Flag changes that
+      introduce or update competing lockfiles, package-manager metadata,
+      or commands in a way that makes dependency resolution depend on
+      whether a contributor happens to run npm, Yarn, pnpm, or another
+      manager.
+    scope:
+      include:
+        - '**/package.json'
+        - '**/package-lock.json'
+        - '**/yarn.lock'
+        - '**/pnpm-lock.yaml'
+        - '**/.yarnrc.yml'
+    granularity: pull_request
+
+  - id: npm-yarn-configurations/runtime-and-package-manager-policy-align
+    description: >
+      Node engine requirements, packageManager declarations, development
+      tooling, CI configuration, and syntax used by the source should
+      describe a coherent supported environment. Flag configuration that
+      claims support for runtimes or package-manager versions incompatible
+      with the project's actual dependencies, scripts, language features,
+      or CI environment.
+    scope:
+      include:
+        - '**/package.json'
+        - '**/.yarnrc.yml'
+        - '**/.npmrc'
+        - '**/.nvmrc'
+        - '**/.node-version'
+    granularity: pull_request
+    context:
+      include:
+        - '**/.github/workflows/**/*'
+        - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+
+  - id: npm-yarn-configurations/published-package-surface-is-intentional
+    description: >
+      For publishable packages, files, exports, main, module, types, bin,
+      browser, and related manifest fields should expose the intended
+      public package surface and agree with the produced artifacts. Flag
+      accidental publication of source, tests, secrets, internal files, or
+      missing runtime and type entry points. Private application packages
+      are exempt from publication-specific concerns.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/dist/**/*'
+        - '**/src/**/*'
+        - '**/*.d.ts'
+
+  - id: npm-yarn-configurations/public-exports-preserve-package-encapsulation
+    description: >
+      A library's exports should define intentional public entry points
+      rather than forcing consumers to import arbitrary internal paths.
+      Flag manifest changes that expose implementation directories, create
+      several equivalent import paths for the same concept, or
+      accidentally make private modules part of the compatibility
+      contract. Deliberate subpath APIs are appropriate when they
+      represent supported public modules.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/src/**/*'
+        - '**/dist/**/*'
+
+  - id: npm-yarn-configurations/optional-dependencies-have-real-fallback
+    description: >
+      A dependency declared optional should correspond to functionality
+      that can actually be absent without breaking the package's normal
+      supported behavior. Flag optional dependencies that are imported
+      unconditionally or whose installation failure merely postpones an
+      inevitable runtime failure.
+    scope:
+      include:
+        - '**/package.json'
+    granularity: pull_request
+    context:
+      include:
+        - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+
+  # Written for this repository.
+  - id: canvas-lms/plugin-gemfile-before-only-logic
+    description: >
+      Files named gems/plugins/*/Gemfile.d/_before.rb must only modify
+      Gemfile logic, not introduce gem dependencies. If a new _before.rb
+      file is added or an existing one is modified to add a gem
+      dependency, it violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - 'gems/plugins/*/Gemfile.d/_before.rb'
+
+  - id: canvas-lms/app-server-gems-only
+    description: >
+      Gems in Gemfile.d/app_server.rb must only be loaded for app servers,
+      not for delayed_jobs servers. Adding a gem to this file that is also
+      needed by delayed_jobs violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - Gemfile.d/app_server.rb
+
+  - id: canvas-lms/jobs-server-gems-only
+    description: >
+      Gems in Gemfile.d/jobs_server.rb must only be loaded for delayed
+      jobs servers, not for app servers. Adding a gem to this file that is
+      also needed by app servers violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - Gemfile.d/jobs_server.rb
+
+  - id: canvas-lms/commit-message-format
+    description: >
+      Every commit message must follow the format: a summary line (under
+      60 characters), a blank line, a detailed description, a blank line,
+      a JIRA reference (fixes/closes/refs <key>), and optionally a test
+      plan section. The ChangeId line must not be removed or altered.
+    severity: error
+    action: fail
+    granularity: pull_request
+
+  - id: canvas-lms/commit-summary-length
+    description: >
+      The first line of every commit message must be under 60 characters.
+      Longer summaries violate the project convention.
+    granularity: pull_request
+
+  - id: canvas-lms/commit-jira-verb
+    description: >
+      Every commit message must include a JIRA reference line using one of
+      the allowed verbs: fixes (for bugs), closes (for fully resolved
+      tickets), or refs (otherwise). Using any other verb violates this
+      rule.
+    severity: error
+    action: fail
+    granularity: pull_request
+
+  - id: canvas-lms/commit-test-plan
+    description: >
+      Every commit message should include a test plan section with steps
+      to set up and test the change. Commits without a test plan are
+      discouraged.
+    granularity: pull_request
+
+  - id: canvas-lms/commit-changeid-required
+    description: >
+      Every commit message must contain a ChangeId line generated by git
+      hooks. It must not be removed or altered.
+    severity: error
+    action: fail
+    granularity: pull_request
+
+  - id: canvas-lms/commit-why-not-what
+    description: >
+      The detailed description in a commit message must focus on why the
+      change was made, not just what was changed.
+    granularity: pull_request
+
+  - id: canvas-lms/accessibility-scan-own-user-only
+    description: >
+      In accessibility_course_scans_controller.rb, the user_id parameter
+      must be the requesting user's own ID. A change that allows
+      triggering a scan for a different user violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/accessibility_course_scans_controller.rb
+
+  - id: canvas-lms/accessibility-statistics-own-user-only
+    description: >
+      In accessibility_course_statistics_controller.rb, the user_id
+      parameter must be the requesting user's own ID. A change that allows
+      retrieving statistics for a different user violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/accessibility_course_statistics_controller.rb
+
+  - id: canvas-lms/ada-chat-no-user-metadata-in-url
+    description: >
+      The Ada chatbot popup host page must never pass user metadata via
+      URL parameters. Any change that adds user metadata to the URL
+      violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ada_chat_popup_controller.rb
+
+  - id: canvas-lms/ada-chat-no-iframe-embedding
+    description: >
+      The Ada chatbot popup page must deny iframe embedding. Any change
+      that allows iframe embedding violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ada_chat_popup_controller.rb
+
+  - id: canvas-lms/ai-conversations-student-own-only
+    description: >
+      In ai_conversations_controller.rb, students must only be able to
+      view their own active conversations. A change that allows students
+      to view other students' conversations violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ai_conversations_controller.rb
+
+  - id: canvas-lms/ai-conversations-teacher-only-evaluation
+    description: >
+      In ai_conversations_controller.rb, only teachers can request
+      evaluations. A change that allows students or other roles to request
+      evaluations violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ai_conversations_controller.rb
+
+  - id: canvas-lms/ai-experiences-student-published-only
+    description: >
+      In ai_experiences_controller.rb, students (non-managers) must only
+      see published experiences. A change that allows students to see
+      unpublished experiences violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ai_experiences_controller.rb
+
+  - id: canvas-lms/ai-experiences-teacher-manager-only
+    description: >
+      In ai_experiences_controller.rb, certain endpoints (create, update,
+      destroy) must only be available to teachers and course managers. A
+      change that allows students or other roles to access these endpoints
+      violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ai_experiences_controller.rb
+
+  - id: canvas-lms/ai-experiences-context-file-flag-gated
+    description: >
+      In ai_experiences_controller.rb, context_file_ids must only be
+      permitted if the relevant feature flag is enabled. A change that
+      permits them without the flag check violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/ai_experiences_controller.rb
+
+  - id: canvas-lms/ai-experiences-indexing-sync-only-active
+    description: >
+      In ai_experiences_controller.rb, only sync experiences that are
+      actively indexing to minimize API calls. A change that syncs
+      non-active experiences violates this rule.
+    scope:
+      include:
+        - app/controllers/ai_experiences_controller.rb
+
+  - id: canvas-lms/announcements-future-scheduled-admin-only
+    description: >
+      In announcements_api_controller.rb, announcements scheduled for
+      future posting must only be returned to course administrators. A
+      change that returns them to non-administrators violates this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/announcements_api_controller.rb
+
+  - id: canvas-lms/announcements-active-only-filter
+    description: >
+      In announcements_api_controller.rb, when active_only is true, only
+      return active announcements that have been published. This applies
+      only to users with permission to view unpublished announcements.
+    scope:
+      include:
+        - app/controllers/announcements_api_controller.rb
+
+  - id: canvas-lms/announcements-section-filter-manage-rights
+    description: >
+      In announcements_api_controller.rb, only filter by section
+      visibility if the user has no course manage rights. A change that
+      applies section filtering to users with manage rights violates this
+      rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/announcements_api_controller.rb
+
+  - id: canvas-lms/application-controller-no-object-prototype-names
+    description: >
+      In application_controller.rb, do not name parameters or variables
+      after properties from JavaScript's Object.prototype (e.g.,
+      'toString', 'valueOf', 'hasOwnProperty').
+    scope:
+      include:
+        - app/controllers/application_controller.rb
+
+  - id: canvas-lms/application-controller-masquerade-current-user
+    description: >
+      In application_controller.rb, @real_current_user must be set before
+      @current_user to ensure a masquerading user never sees the
+      masqueraded user's data. A change that reverses this order violates
+      this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/application_controller.rb
+
+  - id: canvas-lms/application-controller-page-views-html-only
+    description: >
+      In application_controller.rb, page views must only be recorded for
+      HTML page requests coming from within the application. A change that
+      records page views for API requests or external requests violates
+      this rule.
+    severity: error
+    action: fail
+    scope:
+      include:
+        - app/controllers/application_controller.rb
+
