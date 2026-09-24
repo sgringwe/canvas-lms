@@ -80,3 +80,9 @@ test plan:
 
 Some users may run Canvas differently, so consider these useful default suggestions for
 starting and interacting with Canvas if no other methods have been specified.
+
+## IntentLint
+
+This repository records engineering invariants in `.intentlint.yml`.
+When you change code, read the rules whose scope covers the paths you touch and follow them.
+IntentLint checks pull requests against those rules. A clean change gets one passing check.
